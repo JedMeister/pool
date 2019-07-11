@@ -220,7 +220,7 @@ class StockBase(object):
 class StockPool(StockBase):
     """Class for managing a subpool-type stock"""
     def __init__(self, path, recursed_paths=[]):
-        StockBase.__init__(self, path)
+        super(StockPool, self).__init__(self, path)
         if self.link in recursed_paths:
             raise CircularDependency("circular dependency detected `%s' is in recursed paths %s" %
                                      (self.link, recursed_paths))
@@ -335,7 +335,7 @@ class Stock(StockBase):
         return source_versions
 
     def __init__(self, path, pkgcache):
-        StockBase.__init__(self, path)
+        super(Stock, self).__init__(self, path)
 
         self.branch = None
         if "#" in self.name:
@@ -618,7 +618,7 @@ class PoolPaths(Paths):
             path = get_default_path(create)
 
         path = pool_realpath(path)
-        Paths.__init__(self, path)
+        super(PoolPaths, self).__init__(self, path)
 
 def sync(method):
     def wrapper(self, *args, **kws):
