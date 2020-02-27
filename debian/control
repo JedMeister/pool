@@ -19,6 +19,8 @@ Depends:
  ${python:Depends},
  pyproject-common,
  verseek,
+ repo,
+ autoversion
 Recommends:
  chanko,
 Description: maintain a pool of packages from source and binary stocks
