@@ -9,8 +9,9 @@
 
 import os
 from os.path import (
-        exists, isfile, isdir, islink, dirname, basename, abspath,
+        isfile, isdir, islink, dirname, basename, abspath,
         join, splitext, abspath, realpath, relpath)
+from os.path import exists as path_exists
 import re
 import shlex
 import sys
@@ -22,7 +23,7 @@ from contextlib import contextmanager
 from typing import (
     Optional, Union, Generator, Type, Iterator,
     TypeVar, Iterable, no_type_check, cast,
-    List # in a couple of places, if "list" isn't used, there are type erorrs?
+    List # in a couple of places, if "list" isn't used, there are type errors?
 )
 import logging
 
@@ -100,7 +101,7 @@ def parse_package_filename(filename: str) -> tuple[str, str]:
 def hardlink_or_copy(src: AnyPath, dst: AnyPath) -> None:
     src = os.fspath(src)
     dst = os.fspath(dst)
-    if exists(dst):
+    if path_exists(dst):
         os.remove(dst)
 
     try:
@@ -193,7 +194,7 @@ class PackageCache:
         if name in self.namerefs:
             return True
 
-        return exists(join(self.path, basename(name)))
+        return path_exists(join(self.path, basename(name)))
 
     def add(self, path: AnyPath) -> None:
         """Add binary to cache. Hardlink if possible, copy otherwise."""
@@ -273,7 +274,7 @@ class StockBase:
         self.link_path = join(path_, 'link')
 
         self.name = basename(path_)
-        if not exists(self.link_path):
+        if not path_exists(self.link_path):
             raise StockBase.StockBaseError(
                     f"stock link {self.link_path!r} doesn't exist")
 
@@ -332,7 +333,7 @@ class _SyncHead:
                 type: Type['StockBase']
                 ) -> Optional[str]:
         path = obj.path_sync_head
-        if exists(path):
+        if path_exists(path):
             with open(path) as fob:
                 fob.read().rstrip()
 
@@ -341,7 +342,7 @@ class _SyncHead:
     def __set__(self, obj: 'StockBase', val: Optional[str]) -> None:
         path = obj.path_sync_head
         if val is None:
-            if exists(path):
+            if path_exists(path):
                 os.remove(path)
         else:
             with open(path, 'w') as fob:
@@ -368,7 +369,7 @@ class Stock(StockBase):
         orig = Git(self.link)
         checkout_path = self.path_checkout
 
-        if not exists(checkout_path):
+        if not path_exists(checkout_path):
             mkdir(checkout_path)
             checkout = Git.init_create(checkout_path)
             checkout.set_alternates(orig)
@@ -385,7 +386,7 @@ class Stock(StockBase):
         dup_branch(self.branch)
         checkout.checkout("-q", "-f", self.branch)
 
-        if exists(join(checkout_path, "arena.internals")):
+        if path_exists(join(checkout_path, "arena.internals")):
             dup_branch(self.branch + "-thin")
 
             command = f"cd {shlex.quote(checkout_path)} && sumo-open"
@@ -413,7 +414,7 @@ class Stock(StockBase):
 
     def _init_read_versions(self) -> dict[str, list[str]]:
         source_versions = {}
-        for dpath, dnames, fnames in os.walk(self.path_index_sources):
+        for dpath, _, fnames in os.walk(self.path_index_sources):
             relative_path = relpath(dpath, self.path_index_sources)
             for fname in fnames:
                 fpath = join(dpath, fname)
@@ -494,7 +495,7 @@ class Stock(StockBase):
         """List package binaries for this stock ->
                             [ relative/path/foo.deb, ... ]"""
         relative_paths: list[str] = []
-        for dpath, dnames, fnames in os.walk(self.path_index_binaries):
+        for dpath, _, fnames in os.walk(self.path_index_binaries):
             for fname in fnames:
                 fpath = join(dpath, fname)
                 relative_paths.append(relpath(fpath, self.path_index_binaries))
@@ -518,7 +519,7 @@ class Stock(StockBase):
 
         # delete old cached versions
         for path in (self.path_index_sources, self.path_index_binaries):
-            if exists(path):
+            if path_exists(path):
                 shutil.rmtree(path)
                 mkdir(path)
 
@@ -544,9 +545,7 @@ class Stocks:
             self.subpools[stock.name] = stock.pool
         except CircularDependency:
             raise
-        except StockError:
-            pass
-        except PoolError:
+        except (StockError, PoolError):
             pass
 
         if not stock:
@@ -630,10 +629,14 @@ class Stocks:
 
         logger.debug(f'git = {git}')
 
-        if ((not git and branch) or
-                (git and branch and
-                 not git.show_ref(branch.replace('%2F', '/')))):
-            raise PoolError(f"no such branch `{branch}' at `{_dir}'")
+        if (
+            (not git and branch)
+             or (git
+                 and branch
+                 and not git.show_ref(branch.replace('%2F', '/'))
+                 )
+            ):
+                raise PoolError(f"no such branch `{branch}' at `{_dir}'")
 
         if git and not branch:
             ref_path = git.symbolic_ref("HEAD")
@@ -646,7 +649,8 @@ class Stocks:
 
         if stock_name in self.stocks:
             raise PoolError(
-                f"stock already registered under name `{stock_name}'")
+                f"stock already registered under name `{stock_name}'"
+                )
 
         stock_path = join(self.path, stock_name)
         Stock.create(stock_path, _dir)
@@ -823,7 +827,7 @@ class PoolKernel:
 
         self.full_path = spath
         self.path = dirname(spath)
-        if not exists(spath):
+        if not path_exists(spath):
             raise PoolError(f"no pool found (POOL_DIR={self.path})")
 
         self.buildroot = os.readlink(self.path_build_root)
@@ -1313,8 +1317,7 @@ class Pool:
 
     def get(self,
             output_dir: str,
-            packages: List[str], # as per above; 'list[]' here gives a
-                                 # type error
+            packages: List[str], # 'list[str]' here gives a type error?!
             tree_fmt: bool = False,
             strict: bool = False,
             source: bool = False
@@ -1362,7 +1365,7 @@ class Pool:
                 else:
                     path_to = join(output_dir, basename(path_from))
 
-                if not exists(path_to):
+                if not path_exists(path_to):
                     hardlink_or_copy(path_from, path_to)
         finally:
             self.kernel.autosync = True
