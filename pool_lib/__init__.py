@@ -111,6 +111,15 @@ def hardlink_or_copy(src: AnyPath, dst: AnyPath) -> None:
         shutil.copyfile(src, dst)
 
 
+def mkdir(path: AnyPath) -> None:
+    path_ = str_path(path)
+    try:
+        os.makedirs(path_)
+    except OSError as e:
+        if e.args[0] != errno.EEXIST:
+            raise
+
+
 @contextmanager
 def in_dir(path: AnyPath) -> Generator[None, None, None]:
     '''context manager to perform an operation within a specified directory'''
@@ -220,15 +229,6 @@ class PackageCache:
         return list(self.filenames.keys())
 
 
-def mkdir(path: AnyPath) -> None:
-    path_ = str_path(path)
-    try:
-        os.makedirs(path_)
-    except OSError as e:
-        if e.args[0] != errno.EEXIST:
-            raise
-
-
 class StockBase:
     class StockBaseError(Exception):
         pass
@@ -288,7 +288,8 @@ class StockPool(StockBase):
 
     def __init__(self,
                  path: AnyPath,
-                 recursed_paths: Optional[list[str]] = None):
+                 recursed_paths: Optional[list[str]] = None
+                 ):
         logger.debug(
                 f'StockPool(path={path!r}, recursed_paths={recursed_paths!r})')
         super().__init__(path)
@@ -328,7 +329,8 @@ class _SyncHead:
 
     def __get__(self,
                 obj: 'StockBase',
-                type: Type['StockBase']) -> Optional[str]:
+                type: Type['StockBase']
+                ) -> Optional[str]:
         path = obj.path_sync_head
         if exists(path):
             with open(path) as fob:
@@ -576,7 +578,8 @@ class Stocks:
     def __init__(self,
                  path: AnyPath,
                  pkgcache: PackageCache,
-                 recursed_paths: Optional[list[str]] = None):
+                 recursed_paths: Optional[list[str]] = None
+                 ):
         if recursed_paths is None:
             recursed_paths = []
         self.path = path
@@ -675,15 +678,6 @@ class Stocks:
         if isinstance(stock, StockPool):
             del self.subpools[stock.name]
         else:
-            # close sumo arena if it exists
-            # TODO this code is redundant as sumo no longer used
-            checkout_path = stock.path_checkout
-            if exists(join(checkout_path, "arena.internals")):
-                command = f"cd {shlex.quote(checkout_path)} && sumo-close"
-                error = os.system(command)
-                if error:
-                    raise PoolError("failed command: " + command)
-
             # remove cached binaries compiled from this stock
             blacklist: set[tuple[str, str]] = set()
             for path, versions in stock.sources:
@@ -717,10 +711,10 @@ class Stocks:
 
         return None
 
-    def exists_source_version(
-            self,
-            name: str,
-            version: Optional[str] = None) -> bool:
+    def exists_source_version(self,
+                              name: str,
+                              version: Optional[str] = None
+                              ) -> bool:
         """Returns true if the package source exists in any of the stocks.
         If version is None (default), any version will match"""
 
@@ -757,9 +751,9 @@ class PoolKernel:
     PoolError = PoolError
 
     class Subpools:
-        def __get__(
-                self, obj: 'PoolKernel',
-                type: Type['PoolKernel']
+        def __get__(self,
+                    obj: 'PoolKernel',
+                    type: Type['PoolKernel']
         ) -> list['PoolKernel']:
             return obj.stocks.get_subpools()
 
@@ -792,12 +786,12 @@ class PoolKernel:
 
         return name + "=" + version
 
-    def __init__(
-            self,
-            path: Optional[AnyPath] = None,
-            recursed_paths: Optional[list[str]] = None,
-            autosync: bool = True,
-            debug: bool = False):
+    def __init__(self,
+                 path: Optional[AnyPath] = None,
+                 recursed_paths: Optional[list[str]] = None,
+                 autosync: bool = True,
+                 debug: bool = False
+                 ):
         """Initialize pool instance.
 
         if <autosync> is False, the user is expected to control syncing
@@ -864,8 +858,10 @@ class PoolKernel:
         return False
 
     @sync
-    def _list(self, all_versions: bool,
-              verbose: bool = False) -> list[tuple[str, str]]:
+    def _list(self,
+              all_versions: bool,
+              verbose: bool = False
+              ) -> list[tuple[str, str]]:
         """List packages in pool -> list of (name, version) tuples."""
         packages: set[tuple[str, str]] = set()
         for subpool in self.subpools:
@@ -896,8 +892,10 @@ class PoolKernel:
 
         return list(newest.items())
 
-    def list(self, all_versions: bool = False,
-             verbose: bool = False) -> list[str]:
+    def list(self,
+             all_versions: bool = False,
+             verbose: bool = False
+             ) -> list[str]:
         """List packages in pool -> list of packages.
 
         If all_versions is True, returns all versions of packages,
@@ -949,12 +947,12 @@ class PoolKernel:
 
         return resolved
 
-    def _build_package_source(
-            self,
-            source_path: str,
-            name: str,
-            version: str,
-            source: bool = False) -> None:
+    def _build_package_source(self,
+                              source_path: str,
+                              name: str,
+                              version: str,
+                              source: bool = False
+                              ) -> None:
 
         build_outputdir = tempfile.mkdtemp(
             dir=self.path_tmp, prefix=f"{name}-{version}."
@@ -1007,11 +1005,11 @@ class PoolKernel:
         shutil.rmtree(build_outputdir)
 
     @sync
-    def getpath_deb(
-            self,
-            package: str,
-            build: bool = True,
-            source: bool = False) -> Optional[str]:
+    def getpath_deb(self,
+                    package: str,
+                    build: bool = True,
+                    source: bool = False
+                    ) -> Optional[str]:
         """Get path to package in pool if it exists or None if it doesn't.
 
         By default if package exists only in source, build and cache it first.
@@ -1047,10 +1045,11 @@ class PoolKernel:
 
         return path
 
-    class BuildLogs(object):
-        def __get__(
-                self, obj: 'PoolKernel',
-                type: Type['PoolKernel']) -> list[tuple[str, str]]:
+    class BuildLogs:
+        def __get__(self,
+                    obj: 'PoolKernel',
+                    type: Type['PoolKernel']
+                    ) -> list[tuple[str, str]]:
             arr = []
             for fname in os.listdir(obj.path_build_logs):
                 fpath = join(obj.path_build_logs, fname)
@@ -1099,7 +1098,8 @@ class PoolKernel:
     @sync
     def gc(self,
            recurse: bool = True,
-           verbose: bool = True) -> None:
+           verbose: bool = True
+           ) -> None:
         """Garbage collect stale data from the pool's caches"""
 
         whitelist: set[tuple[str, str]] = set()
@@ -1158,36 +1158,37 @@ def get_treedir(pkgname: str) -> str:
         return join(pkgname[:1], pkgname)
 
 
-class Pool(object):
+class Pool:
     PoolError = PoolError
 
     class PackageList:
         def __init__(self,
-                     sequence: Optional[Iterable[str]] = None):
+                     sequence: Optional[Iterable[str]] = None
+                     ):
             self.inner = [] if sequence is None else list(sequence)
             self.missing: list[str] = []
 
-        def __iter__(self):
+        def __iter__(self):  # TODO return type
             return iter(self.inner)
 
-        def __iadd__(self, other):
+        def __iadd__(self, other):  # TODO "other" and return types
             self.inner += other
             return self
 
-        def append(self, pkg: str):
+        def append(self, pkg: str):  # TODO return type
             self.inner.append(pkg)
 
-        def sort(self, key, reverse: bool = False):
+        def sort(self, key, reverse: bool = False):  # TODO return type
             self.inner.sort(key=key, reverse=reverse)
 
     parse_package_id = staticmethod(PoolKernel.parse_package_id)
     fmt_package_id = staticmethod(PoolKernel.fmt_package_id)
 
     @classmethod
-    def init_create(
-            cls: Type['Pool'],
-            buildroot: AnyPath,
-            path: Optional[AnyPath] = None) -> 'Pool':
+    def init_create(cls: Type['Pool'],
+                    buildroot: AnyPath,
+                    path: Optional[AnyPath] = None
+                    ) -> 'Pool':
 
         if path is None:
             cwd = os.getcwd()
@@ -1247,7 +1248,8 @@ class Pool(object):
 
     def __init__(self,
                  path: Optional[AnyPath] = None,
-                 debug: bool = False):
+                 debug: bool = False
+                 ):
         kernel = PoolKernel(path, debug=debug)
         if kernel.drop_privileges(pretend=True):
             def f() -> PoolKernel:
@@ -1261,8 +1263,11 @@ class Pool(object):
                           forked_constructor(f, print_traceback=True)())
         self.kernel = kernel
 
-    def list(self, all_versions: bool = False,
-             *globs: str, verbose: bool = False) -> 'Pool.PackageList':
+    def list(self,
+             all_versions: bool = False,
+             *globs: str,
+             verbose: bool = False
+             ) -> 'Pool.PackageList':
         """List packages in pool (sorted) ->
                         Pool.PackageList (list + .missing attr)
 
@@ -1272,7 +1277,8 @@ class Pool(object):
         assert isinstance(all_versions, bool)
 
         def filter_packages(packages: list[str],
-                            globs: list[str]) -> 'Pool.PackageList':
+                            globs: list[str]
+                            ) -> 'Pool.PackageList':
             filtered = Pool.PackageList()
             for glob in globs:
                 matches = []
@@ -1293,11 +1299,6 @@ class Pool(object):
         if globs:
             packages = filter_packages(list(packages), list(globs))
 
-        #def _cmp(a: str, b: str) -> int:
-        #    a = Pool.parse_package_id(a)
-        #    b = Pool.parse_package_id(b)
-        #    return debian_support.version_compare(a[1], b[1])
-
         packages.sort(
                 key=(lambda p:
                      debian_support.Version(Pool.parse_package_id(p)[1])),
@@ -1310,13 +1311,14 @@ class Pool(object):
     def unregister(self, stock: str) -> None:
         self.kernel.unregister(stock)
 
-    def get(
-                self, output_dir: str,
-                packages: List[str], # as per above; 'list[]' here gives a
-                                     # type error
-                tree_fmt: bool = False,
-                strict: bool = False,
-                source: bool = False) -> 'Pool.PackageList':
+    def get(self,
+            output_dir: str,
+            packages: List[str], # as per above; 'list[]' here gives a
+                                 # type error
+            tree_fmt: bool = False,
+            strict: bool = False,
+            source: bool = False
+            ) -> 'Pool.PackageList':
         """get packages to output_dir -> resolved Pool.PackageList of packages
 
         If strict missing packages raise an exception,
