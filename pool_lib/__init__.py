@@ -1049,7 +1049,7 @@ class PoolKernel:
 
         return path
 
-    class BuildLogs:
+    class BuildLogs(object):
         def __get__(self,
                     obj: 'PoolKernel',
                     type: Type['PoolKernel']
@@ -1162,7 +1162,7 @@ def get_treedir(pkgname: str) -> str:
         return join(pkgname[:1], pkgname)
 
 
-class Pool:
+class Pool(object):
     PoolError = PoolError
 
     class PackageList:

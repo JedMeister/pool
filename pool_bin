@@ -17,7 +17,7 @@ from typing import NoReturn
 
 from debian import debfile, debian_support
 
-import pool_lib
+import pool_lib as pool
 from pool_lib import Pool, PoolKernel, PoolError
 
 exitcode = 0
@@ -28,13 +28,13 @@ DEBUG = False
 def warn(s: str) -> None:
     global exitcode
     exitcode = 1
-    print("warning: " + str(s), file=sys.stderr)
+    print(f"warning: {str(s)}", file=sys.stderr)
 
 
 def fatal(msg: str | PoolError | FileNotFoundError,
           show_help: bool = False
           ) -> NoReturn:
-    print("error: " + str(msg), file=sys.stderr)
+    print(f"error: {str(msg)}", file=sys.stderr)
     if show_help:
         help()
     sys.exit(1)
