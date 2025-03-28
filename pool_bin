@@ -132,16 +132,6 @@ def get(
     sys.exit(this_exitcode)
 
 
-def init(pool_path):
-    try:
-        pool.Pool.init_create(os.path.abspath(buildroot))
-    except PoolError as e:
-        if not DEBUG:
-            fatal(e)
-        else:
-            raise e
-
-
 # # info_build
 def extract_source_name(path):
     deb = debfile.DebFile(path)
