@@ -868,6 +868,7 @@ class PoolKernel:
         )
         mkdir(self.path_tmp)
         self.autosync = autosync
+        self.uid = os.geteuid()
 
     def __str__(self) -> str:
         str_lines = [f"buildroot: {self.buildroot}", "stocks:"]
@@ -1016,6 +1017,8 @@ class PoolKernel:
                 self.buildroot,
                 build_outputdir,
             ]
+            if self.uid != 0 and shutil.which("sudo"):
+                command.insert(0, "sudo")
             print(f"# {' '.join(command)}")
             deckdebuild_exitcode = subprocess.run(command).returncode
         verseek.seek_version(source_path)
