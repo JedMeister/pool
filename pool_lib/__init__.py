@@ -1017,6 +1017,9 @@ class PoolKernel:
                 self.buildroot,
                 build_outputdir,
             ]
+            # XXX this is potentially unsafe and requires a rethink!
+            # the reason why the uid reverts to the user uid - even when
+            # pool is launched via sudo is because of forked_constructor()
             if self.uid != 0 and shutil.which("sudo"):
                 command.insert(0, "sudo")
             print(f"# {' '.join(command)}")
