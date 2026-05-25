@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+MIRRORSITE=http://deb.debian.org/debian/
+
+mkdir -p /etc
+if [ ! -f /etc/pbuilderrc ]; then
+    echo "MIRRORSITE=$MIRRORSITE" > /etc/pbuilderrc
+elif ! grep "^MIRRORSITE=" /etc/pbuilderrc >/dev/null 2>&1; then
+    echo "MIRRORSITE=$MIRRORSITE" >> /etc/pbuilderrc
+fi
